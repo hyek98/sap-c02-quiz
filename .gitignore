@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# IDE
+.vscode/
+.idea/
+
+# Node modules (if any)
+node_modules/
+
+# Personal data exports
+*.json
+!package.json
+
+# Sync functions temp
+sync-functions.js
