@@ -101,26 +101,41 @@ async function syncFromGist() {
     const content = gist.files['sap-c02-progress.json'].content;
     const data = JSON.parse(content);
 
-    // 병합 로직: 최신 데이터 유지
+    console.log('📥 원격 데이터:', Object.keys(data.progress || {}).length, '문제');
+    console.log('💾 로컬 데이터:', Object.keys(st.ps || {}).length, '문제');
+
+    // 병합 로직: 양쪽 데이터 모두 유지
     Object.keys(data.progress || {}).forEach(num => {
       const remote = data.progress[num];
       const local = st.ps[num];
 
-      // 원격이 최신이거나 로컬에 없으면 원격 데이터 사용
-      if (!local || (remote.answered && !local.answered)) {
+      if (!local) {
+        // 로컬에 없으면 원격 데이터 사용
         st.ps[num] = remote;
+      } else if (remote && remote.answered) {
+        // 둘 다 있으면: 더 많이 시도한 쪽 사용 (answered가 true인지 확인)
+        if (!local.answered || (remote.cnt || 0) > (local.cnt || 0)) {
+          st.ps[num] = remote;
+        }
       }
     });
 
-    // 북마크와 히스토리 병합
-    Object.assign(st.bm, data.bookmarks || {});
-    st.hist = [...st.hist, ...(data.history || [])];
+    // 북마크 병합 (양쪽 합치기)
+    Object.keys(data.bookmarks || {}).forEach(num => {
+      if (data.bookmarks[num]) st.bm[num] = data.bookmarks[num];
+    });
 
-    save();
+    // 히스토리 병합 (중복 제거)
+    const histSet = new Set(st.hist.map(h => JSON.stringify(h)));
+    (data.history || []).forEach(h => histSet.add(JSON.stringify(h)));
+    st.hist = Array.from(histSet).map(h => JSON.parse(h));
+
+    // save() 호출하지 않고 직접 localStorage 저장 (무한 루프 방지)
+    try { localStorage.setItem('sapc02v2', JSON.stringify(st)); } catch(e) {}
     updateHome();
     updateBadges();
 
-    console.log('✅ Gist에서 데이터 동기화 완료');
+    console.log('✅ 병합 완료:', Object.keys(st.ps || {}).length, '문제');
   } catch (error) {
     console.error('데이터 불러오기 실패:', error);
   }
