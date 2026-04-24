@@ -420,6 +420,11 @@ function defSt() { return {ps:{}, bm:{}, hist:[]}; }
 function save() {
   try { localStorage.setItem('sapc02v2', JSON.stringify(st)); } catch(e) {}
   updateHome(); updateBadges();
+
+  // 자동 동기화 트리거
+  if (typeof autoSyncToGist === 'function' && syncConfig && syncConfig.autoSync) {
+    autoSyncToGist().catch(e => console.error('자동 동기화 실패:', e));
+  }
 }
 
 // ── NAV ──
@@ -1300,6 +1305,18 @@ window.addEventListener('load', async () => {
 
 // ── INIT ──
 updateHome(); updateBadges(); setFilter('all');
+</script>
+</body>
+</html>
+// 페이지 로드 시 자동 동기화 실행
+setTimeout(() => {
+  if (typeof syncFromGist === 'function' && syncConfig && syncConfig.autoSync && syncConfig.token) {
+    syncFromGist().then(() => {
+      console.log('✅ 페이지 로드: Gist에서 데이터 동기화 완료');
+      updateHome(); updateBadges();
+    }).catch(e => console.error('페이지 로드: 동기화 실패', e));
+  }
+}, 1000);
 </script>
 </body>
 </html>
