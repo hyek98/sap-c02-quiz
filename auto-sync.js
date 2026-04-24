@@ -27,6 +27,13 @@ const gistAPI = {
         }
       })
     });
+
+    if (!response.ok) {
+      const error = new Error(`GitHub API Error: ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+
     return response.json();
   },
 
@@ -45,6 +52,13 @@ const gistAPI = {
         }
       })
     });
+
+    if (!response.ok) {
+      const error = new Error(`GitHub API Error: ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+
     return response.json();
   },
 
@@ -54,6 +68,13 @@ const gistAPI = {
         'Authorization': `token ${token}`
       }
     });
+
+    if (!response.ok) {
+      const error = new Error(`GitHub API Error: ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+
     return response.json();
   }
 };
