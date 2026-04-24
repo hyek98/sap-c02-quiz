@@ -58,13 +58,25 @@ const gistAPI = {
   }
 };
 
+// 동기화 진행 중 플래그
+let syncInProgress = false;
+let pendingSync = false;
+
 // 자동 동기화 함수
 async function autoSyncToGist() {
   if (!syncConfig.autoSync || !syncConfig.token) return;
 
+  // 이미 동기화 중이면 대기열에 등록
+  if (syncInProgress) {
+    pendingSync = true;
+    return;
+  }
+
   const now = Date.now();
-  // 10초 이내 중복 동기화 방지
-  if (now - syncConfig.lastSync < 10000) return;
+  // 3초 이내 중복 동기화 방지
+  if (now - syncConfig.lastSync < 3000) return;
+
+  syncInProgress = true;
 
   try {
     const data = {
@@ -77,18 +89,39 @@ async function autoSyncToGist() {
 
     if (!syncConfig.gistId) {
       // Gist 생성
+      console.log('📤 Gist 생성 중...');
       const result = await gistAPI.create(syncConfig.token, data);
       syncConfig.gistId = result.id;
       localStorage.setItem('gist_id', result.id);
+      console.log('✅ Gist 생성 완료:', result.id);
     } else {
       // Gist 업데이트
+      console.log('📤 Gist 업데이트 중...');
       await gistAPI.update(syncConfig.token, syncConfig.gistId, data);
+      console.log('✅ Gist 업데이트 완료');
     }
 
     syncConfig.lastSync = now;
     localStorage.setItem('last_sync', now);
   } catch (error) {
-    console.error('자동 동기화 실패:', error);
+    console.error('❌ 자동 동기화 실패:', error);
+    // 409 Conflict 시 1초 후 재시도
+    if (error.status === 409) {
+      console.log('⏳ 1초 후 재시도...');
+      setTimeout(() => {
+        syncInProgress = false;
+        autoSyncToGist();
+      }, 1000);
+      return;
+    }
+  } finally {
+    syncInProgress = false;
+
+    // 대기 중인 동기화가 있으면 실행
+    if (pendingSync) {
+      pendingSync = false;
+      setTimeout(() => autoSyncToGist(), 1000);
+    }
   }
 }
 
