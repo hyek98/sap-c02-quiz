@@ -92,7 +92,7 @@ function autoSyncToGist() {
     clearTimeout(syncTimer);
   }
 
-  // 2초 후 실행
+  // 3초 후 실행
   syncTimer = setTimeout(async () => {
     if (syncInProgress) {
       console.log('⏳ 동기화 진행 중... 대기');
@@ -102,35 +102,66 @@ function autoSyncToGist() {
     syncInProgress = true;
     console.log('📤 Gist 업데이트 시작...');
 
-    try {
-      const data = {
-        version: '1.0',
-        syncDate: new Date().toISOString(),
-        progress: st.ps,
-        bookmarks: st.bm,
-        history: st.hist
-      };
+    let retries = 0;
+    const maxRetries = 3;
 
-      if (!syncConfig.gistId) {
-        // Gist 생성
-        const result = await gistAPI.create(syncConfig.token, data);
-        syncConfig.gistId = result.id;
-        localStorage.setItem('gist_id', result.id);
-        console.log('✅ Gist 생성 완료:', result.id);
-      } else {
-        // Gist 업데이트
-        await gistAPI.update(syncConfig.token, syncConfig.gistId, data);
+    while (retries < maxRetries) {
+      try {
+        // Gist가 없으면 생성
+        if (!syncConfig.gistId) {
+          const data = {
+            version: '1.0',
+            syncDate: new Date().toISOString(),
+            progress: st.ps,
+            bookmarks: st.bm,
+            history: st.hist
+          };
+
+          const result = await gistAPI.create(syncConfig.token, data);
+          syncConfig.gistId = result.id;
+          localStorage.setItem('gist_id', result.id);
+          console.log('✅ Gist 생성 완료:', result.id);
+          break;
+        }
+
+        // 1. 먼저 최신 데이터 가져오기
+        const gist = await gistAPI.get(syncConfig.token, syncConfig.gistId);
+        const content = gist.files['sap-c02-progress.json'].content;
+        const remoteData = JSON.parse(content);
+
+        // 2. 로컬 데이터와 병합
+        const mergedData = {
+          version: '1.0',
+          syncDate: new Date().toISOString(),
+          progress: { ...(remoteData.progress || {}), ...st.ps },
+          bookmarks: { ...(remoteData.bookmarks || {}), ...st.bm },
+          history: Array.from(new Set([...(remoteData.history || []), ...st.hist].map(h => JSON.stringify(h)))).map(h => JSON.parse(h))
+        };
+
+        // 3. 병합된 데이터 업데이트
+        await gistAPI.update(syncConfig.token, syncConfig.gistId, mergedData);
         console.log('✅ Gist 업데이트 완료');
-      }
 
-      syncConfig.lastSync = Date.now();
-      localStorage.setItem('last_sync', syncConfig.lastSync);
-    } catch (error) {
-      console.error('❌ 동기화 실패:', error);
-    } finally {
-      syncInProgress = false;
+        syncConfig.lastSync = Date.now();
+        localStorage.setItem('last_sync', syncConfig.lastSync);
+        break;
+
+      } catch (error) {
+        if (error.status === 409 && retries < maxRetries - 1) {
+          // 409 Conflict: 잠시 대기 후 재시도
+          retries++;
+          const delay = 500 * retries; // 500ms, 1000ms, 1500ms
+          console.log(`⏳ 충돌 발생, ${delay}ms 후 재시도 (${retries}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          console.error('❌ 동기화 실패:', error);
+          break;
+        }
+      }
     }
-  }, 2000);
+
+    syncInProgress = false;
+  }, 3000);
 }
 
 // 데이터 불러오기
