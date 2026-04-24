@@ -1095,13 +1095,9 @@ const firebaseConfig = {
 };
 
 let database = null;
-let userId = localStorage.getItem('firebase_user_id') || generateUserId();
-
-function generateUserId() {
-  const id = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-  localStorage.setItem('firebase_user_id', id);
-  return id;
-}
+// 고정 User ID 사용 (모든 기기에서 동일한 데이터 공유)
+const FIXED_USER_ID = 'hyek98_sap_c02_user';
+let userId = FIXED_USER_ID;
 
 // Firebase 초기화
 function initFirebase() {
