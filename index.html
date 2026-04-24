@@ -420,11 +420,6 @@ function defSt() { return {ps:{}, bm:{}, hist:[]}; }
 function save() {
   try { localStorage.setItem('sapc02v2', JSON.stringify(st)); } catch(e) {}
   updateHome(); updateBadges();
-
-  // 자동 동기화 트리거
-  if (typeof autoSyncToGist === 'function' && syncConfig && syncConfig.autoSync) {
-    autoSyncToGist().catch(e => console.error('자동 동기화 실패:', e));
-  }
 }
 
 // ── NAV ──
@@ -1215,14 +1210,6 @@ async function syncFromGist() {
   }
 }
 
-// save 함수 래핑 (자동 동기화 트리거)
-const originalSave = window.save;
-window.save = function() {
-  originalSave.call(this);
-  if (syncConfig.autoSync) {
-    autoSyncToGist();
-  }
-};
 
 // 동기화 설정 UI
 function openSyncSettings() {
