@@ -423,6 +423,11 @@ function defSt() { return {ps:{}, bm:{}, hist:[]}; }
 function save() {
   try { localStorage.setItem('sapc02v2', JSON.stringify(st)); } catch(e) {}
   updateHome(); updateBadges();
+
+  // Firebase 동기화 트리거
+  if (typeof syncToFirebase === 'function' && database) {
+    syncToFirebase();
+  }
 }
 
 // ── NAV ──
@@ -1182,14 +1187,6 @@ function setupRealtimeSync() {
   });
 }
 
-// save 함수 래핑
-const originalSave = window.save;
-window.save = function() {
-  originalSave.call(this);
-  if (database) {
-    syncToFirebase();
-  }
-};
 
 // 더미 함수 (UI 호환성)
 function openSyncSettings() {
