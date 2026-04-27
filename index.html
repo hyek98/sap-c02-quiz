@@ -1129,7 +1129,28 @@ let currentMemoQNum = null;
 
 function toggleMemoSidebar() {
   const sidebar = document.getElementById('memo-sidebar');
-  const toggle = document.getElementById('memo-toggle');
+
+  // 사이드바가 닫혀있을 때 열면 현재 문제의 메모를 표시
+  if (!sidebar.classList.contains('open')) {
+    // 현재 보고 있는 문제 찾기
+    let currentQNum = null;
+
+    // Practice/Bookmark 페이지인 경우
+    if (pList && pList.length > 0 && pIdx >= 0 && pIdx < pList.length) {
+      currentQNum = pList[pIdx].num;
+    }
+    // Exam 페이지인 경우
+    else if (examState && examState.qs && examState.idx >= 0 && examState.idx < examState.qs.length) {
+      currentQNum = examState.qs[examState.idx].num;
+    }
+
+    if (currentQNum) {
+      openMemoSidebar(currentQNum);
+      return;
+    }
+  }
+
+  // 단순 토글 (사이드바가 이미 열려있으면 닫기)
   sidebar.classList.toggle('open');
 }
 
