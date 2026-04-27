@@ -897,7 +897,7 @@ function mkCard(q, qNum, qTotal, isBm, sel, isAnswered, isCorrect, note, onChoic
       let expHtml = '';
       if (q.explanation) {
         expHtml += `<div class="exp-header">📖 해설<button class="exp-edit-btn" onclick="editExplanation(${q.num})">✏️ 편집</button></div>`;
-        expHtml += `<div class="exp-content">${q.explanation}</div>`;
+        expHtml += `<div class="exp-content" id="expContent${q.num}">${q.explanation}</div>`;
       }
       if (q.keyPoints && q.keyPoints.length > 0) {
         expHtml += `<div class="key-points">`;
@@ -1165,12 +1165,15 @@ function openMemoSidebar(qNum) {
 function editExplanation(qNum) {
   const q = ALL_Q.find(x => x.num === qNum);
   if (!q) return;
-  
-  const expContent = document.querySelector(`#q${qNum} .exp-content`);
-  if (!expContent) return;
-  
+
+  const expContent = document.getElementById(`expContent${qNum}`);
+  if (!expContent) {
+    console.error('exp-content not found for Q' + qNum);
+    return;
+  }
+
   const currentText = q.explanation || '';
-  
+
   expContent.innerHTML = `
     <textarea class="exp-textarea" id="exp-edit-${qNum}">${currentText}</textarea>
     <div class="exp-edit-actions">
@@ -1197,7 +1200,7 @@ function saveExplanation(qNum) {
   save();
   
   // Re-render
-  const expContent = document.querySelector(`#q${qNum} .exp-content`);
+  const expContent = document.getElementById(`expContent${qNum}`);
   if (expContent) {
     expContent.innerHTML = newText;
   }
@@ -1209,7 +1212,7 @@ function cancelEditExplanation(qNum) {
   const q = ALL_Q.find(x => x.num === qNum);
   if (!q) return;
   
-  const expContent = document.querySelector(`#q${qNum} .exp-content`);
+  const expContent = document.getElementById(`expContent${qNum}`);
   if (expContent) {
     expContent.innerHTML = q.explanation || '';
   }
